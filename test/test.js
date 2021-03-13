@@ -2,43 +2,16 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable guard-for-in */
 /* eslint-disable no-restricted-syntax */
+const { v4: uuidv4 } = require('uuid');
+
 const { fetchData } = require('../src/helpers/fetch-ohlc');
 const convertToNumbers = require('../src/helpers/convert-to-numbers');
 const getTwapPos = require('../src/helpers/twap');
 
-const capital = 50;
+const capital = 1000;
+const candles = 401;
 
 const initData = [
-  {
-    capital,
-    symbol: 'sushiusdt',
-    timeframe: '1d',
-    smoothing: 20,
-  },
-  {
-    capital,
-    symbol: 'aaveusdt',
-    timeframe: '1d',
-    smoothing: 20,
-  },
-  {
-    capital,
-    symbol: 'grtusdt',
-    timeframe: '1d',
-    smoothing: 20,
-  },
-  {
-    capital,
-    symbol: 'crvusdt',
-    timeframe: '1d',
-    smoothing: 20,
-  },
-  {
-    capital,
-    symbol: 'sushiusdt',
-    timeframe: '15m',
-    smoothing: 14,
-  },
   {
     capital,
     symbol: 'btcusdt',
@@ -58,8 +31,8 @@ const test = async () => {
 
       return {
         ...acc,
-        [`${initData[i].symbol}-${initData[i].timeframe}`]: market
-          .slice(market.length - 201 > 0 ? market.length - 201 : 0, market.length)
+        [uuidv4()]: market
+          .slice(market.length - candles > 0 ? market.length - candles : 0, market.length)
           .map(([openTime, o, h, l, c, volume, candleCloseTime]) => {
             const [open, high, low, close] = convertToNumbers([o, h, l, c]);
 
@@ -84,7 +57,7 @@ const test = async () => {
       const prevTwapPosition = getTwapPos(prevOhlc);
       const currentTwapPosition = getTwapPos(ohlc);
 
-      const { symbol: currentSymbol, timeframe } = initData[j];
+      const { symbol: currentSymbol, timeframe, smoothing } = initData[j];
 
       if (currentTwapPosition === 'below' && prevTwapPosition !== currentTwapPosition) {
         entries[currentSymbol] = {
@@ -96,6 +69,7 @@ const test = async () => {
           'BUY',
           'Symbol:', currentSymbol,
           'Timeframe:', timeframe,
+          'Smoothing:', smoothing,
           `@$${ohlc[ohlc.length - 1].closePrice}`,
           'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
         );
@@ -114,6 +88,7 @@ const test = async () => {
             'SELL',
             'Symbol:', currentSymbol,
             'Timeframe:', timeframe,
+            'Smoothing:', smoothing,
             `@$${ohlc[ohlc.length - 1].closePrice}`,
             'PnL:', `${((pnl - 1) * 100).toFixed(2)}%`,
             'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
@@ -126,10 +101,13 @@ const test = async () => {
     j++;
   }
 
-  initData.forEach(({ capital: _capital, symbol, timeframe }) => {
+  initData.forEach(({
+    capital: _capital, symbol, timeframe, smoothing,
+  }) => {
     console.log(
       'Symbol:', symbol.toUpperCase(),
       'Timeframe:', timeframe,
+      'Smoothing:', smoothing,
       'Initial capital:', capital,
       'Current capital:', _capital,
     );

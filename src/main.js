@@ -7,13 +7,8 @@ require('dotenv').config();
 
 const initData = [
   {
-    timeframe: '1m',
     symbol: 'btcusdt',
-    smoothing: 20,
-  },
-  {
-    timeframe: '1m',
-    symbol: 'sushiusdt',
+    timeframe: '4h',
     smoothing: 20,
   },
 ];

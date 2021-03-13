@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 const nodeFetch = require('node-fetch');
+
 const convertToNumbers = require('./convert-to-numbers');
 
 const API_URL = 'https://fapi.binance.com';
