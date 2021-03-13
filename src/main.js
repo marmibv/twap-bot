@@ -1,4 +1,4 @@
-const fetchOhlc = require('./helpers/fetch-ohlc');
+const { fetchOhlc } = require('./helpers/fetch-ohlc');
 const establishBnbWss = require('./helpers/wss');
 const getTwapPos = require('./helpers/twap');
 const getOhlc = require('./helpers/get-ohlc');
@@ -42,14 +42,16 @@ const init = async (_initData) => {
 
       ohlc[_streamSymbol] = _ohlc;
 
-      const twapPosition = getTwapPos(ohlc[_streamSymbol]);
+      const currentOhlc = ohlc[_streamSymbol];
+
+      const twapPosition = getTwapPos(currentOhlc);
 
       if (twapPosition === 'below' && prevTwapPosition !== twapPosition) {
         // BUY
-        console.log('BUY', _streamSymbol.toUpperCase(), `@$${ohlc[_streamSymbol][ohlc.length - 1].closePrice}`);
+        console.log('BUY', _streamSymbol.toUpperCase(), `@$${currentOhlc[currentOhlc.length - 1].closePrice}`);
       } else if (twapPosition === 'above' && prevTwapPosition !== twapPosition) {
         // SELL
-        console.log('SELL', _streamSymbol.toUpperCase(), `@$${ohlc[_streamSymbol][ohlc.length - 1].closePrice}`);
+        console.log('SELL', _streamSymbol.toUpperCase(), `@$${currentOhlc[currentOhlc.length - 1].closePrice}`);
       }
     }
   });

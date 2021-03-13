@@ -1,16 +1,16 @@
 # DEV
 
-- [ ] init Function
+- [x] init Function
   - Gets data from Binance
     - OHLC data
   - Sets up Websocket connection
 
 - [ ] Create logger
 
-- [ ] Test function
+- [x] Test function
   - Test profitability based on previous data
 
-- [ ] Refactor and organize current code
+- [x] Refactor and organize current code
 
 # API
 
