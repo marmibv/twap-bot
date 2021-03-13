@@ -1,82 +1,58 @@
-const getOhlc = require('./helpers/get-ohlc');
+const fetchOhlc = require('./helpers/fetch-ohlc');
 const establishBnbWss = require('./helpers/wss');
-const twapPrice = require('./helpers/twap-price');
+const getTwapPos = require('./helpers/twap');
+const getOhlc = require('./helpers/get-ohlc');
 
 require('dotenv').config();
 
-const timeframe = '5m';
-const symbol = 'sushiusdt';
-const smoothing = 20;
+const initData = [
+  {
+    timeframe: '1m',
+    symbol: 'btcusdt',
+    smoothing: 20,
+  },
+  {
+    timeframe: '1m',
+    symbol: 'sushiusdt',
+    smoothing: 20,
+  },
+];
 
-let capital = 50;
-let entry = {};
+const init = async (_initData) => {
+  console.log(
+    'Watching:\n',
+    initData.map(({ symbol, timeframe, smoothing }) => `Symbol: ${symbol}\n Timeframe: ${timeframe}\n Smoothing: ${smoothing}`).join('\n'),
+  );
 
-const bnbWss = establishBnbWss(symbol, timeframe);
+  const ohlc = await fetchOhlc(_initData);
 
-let ohlc4 = [];
-let lastPrice = 0;
-let twapPosition = ''; /* above / below */
+  const bnbWss = establishBnbWss(_initData);
 
-const setOhlc = async () => {
-  ohlc4 = await getOhlc(symbol, timeframe, smoothing);
-};
+  bnbWss.on('message', (dataJSON) => {
+    if (!dataJSON) return;
+    const { stream, data } = JSON.parse(dataJSON);
 
-setOhlc();
+    const [_streamSymbol] = stream.split('@');
+    const { k } = data;
 
-const setOhlc4 = (k) => {
-  const {
-    o, h, l, c, T: candleCloseTime,
-  } = k;
+    const { ohlc: _ohlc, newCandle } = getOhlc(ohlc[_streamSymbol], k);
 
-  // if candleCloseTime > last in ohlc4, pop first, push to ohlc4
-  const currentOHLC4 = {
-    c: Number(c),
-    avgPrice: (Number(o) + Number(h) + Number(l) + Number(c)) / 4,
-    candleCloseTime: new Date(candleCloseTime),
-  };
+    if (newCandle) {
+      const prevTwapPosition = getTwapPos(ohlc[_streamSymbol]);
 
-  if (ohlc4[ohlc4.length - 1].candleCloseTime - candleCloseTime < 0) {
-    ohlc4 = [...ohlc4.slice(1), currentOHLC4];
-  }
+      ohlc[_streamSymbol] = _ohlc;
 
-  lastPrice = ohlc4[ohlc4.length - 1].c;
-};
+      const twapPosition = getTwapPos(ohlc[_streamSymbol]);
 
-bnbWss.on('message', (data) => {
-  const { e, k } = JSON.parse(data);
-
-  if (e === 'kline') {
-    setOhlc4(k);
-
-    if (lastPrice > 0) {
-      const prevTwapPosition = twapPosition;
-
-      twapPosition = twapPrice(ohlc4) > lastPrice ? 'above' : 'below';
-
-      if (prevTwapPosition === twapPosition || !prevTwapPosition.length) {
-        return;
-      }
-
-      if (twapPosition === 'above') {
-        // CHECK FOR OPENED POSITIONS
-        // IF THERE ARE ANY, CLOSE THEM
-        if (entry.type === 'long') {
-          capital *= (lastPrice / entry.price);
-          entry.type = 'none';
-
-          console.log('SELL', `@$${lastPrice}`, `PnL: ${(capital / 50 - 1) * 100} - $${capital - 50}`, new Date(Date.now()));
-        }
-      } else if (twapPosition === 'below') {
-        console.log('BUY', `@$${lastPrice}`, new Date(Date.now()));
-
-        // SEND MARKET BUY ORDER
-
-        entry = {
-          type: 'long',
-          price: lastPrice,
-          amount: capital / lastPrice,
-        };
+      if (twapPosition === 'below' && prevTwapPosition !== twapPosition) {
+        // BUY
+        console.log('BUY', _streamSymbol.toUpperCase(), `@$${ohlc[_streamSymbol][ohlc.length - 1].closePrice}`);
+      } else if (twapPosition === 'above' && prevTwapPosition !== twapPosition) {
+        // SELL
+        console.log('SELL', _streamSymbol.toUpperCase(), `@$${ohlc[_streamSymbol][ohlc.length - 1].closePrice}`);
       }
     }
-  }
-});
+  });
+};
+
+init(initData);

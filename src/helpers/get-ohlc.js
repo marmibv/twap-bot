@@ -1,25 +1,32 @@
-const nodeFetch = require('node-fetch');
+const convertToNumbers = require('./convert-to-numbers');
 
-const API_URL = 'https://fapi.binance.com';
-const candlestickDataEndpoint = '/fapi/v1/klines';
+const getOhlc = (
+  ohlcArr,
+  {
+    o, h, l, c, T: candleCloseTime,
+  },
+) => {
+  const { candleCloseTime: latestCandleCloseTime } = ohlcArr[ohlcArr.length - 1];
 
-const getOhlc = async (symbol, timeframe, smoothing) => {
-  const jsonRes = await nodeFetch(`${API_URL}${candlestickDataEndpoint}?symbol=${symbol}&interval=${timeframe}`);
-  const res = await jsonRes.json();
+  if (latestCandleCloseTime === candleCloseTime) {
+    return {
+      ohlc: ohlcArr,
+      newCandle: false,
+    };
+  }
 
-  // eslint-disable-next-line no-unused-vars
-  const ohlcData = res.slice(res.length - smoothing).reduce((acc, [openTime, open, high, low, close, volume, candleCloseTime]) => (
-    [
-      ...acc,
-      {
-        c: Number(close),
-        avgPrice: (Number(open) + Number(high) + Number(low) + Number(close)) / 4,
-        candleCloseTime: new Date(candleCloseTime),
-      },
-    ]
-  ), []);
+  const [open, high, low, close] = convertToNumbers([o, h, l, c]);
 
-  return ohlcData;
+  const currentOhlc = {
+    candleCloseTime,
+    closePrice: close,
+    ohlc4: (open + high + low + close) / 4,
+  };
+
+  return {
+    ohlc: [...ohlcArr.slice(1), currentOhlc],
+    newCandle: true,
+  };
 };
 
 module.exports = getOhlc;
