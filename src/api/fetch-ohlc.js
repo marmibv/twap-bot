@@ -1,20 +1,26 @@
 /* eslint-disable no-unused-vars */
-const nodeFetch = require('node-fetch');
+const axios = require('axios');
 
-const convertToNumbers = require('./convert-to-numbers');
+const { API_URL } = require('../constants');
+const convertToNumbers = require('../helpers/convert-to-numbers');
 
-const API_URL = 'https://fapi.binance.com';
-const candlestickDataEndpoint = '/fapi/v1/klines';
+const candlestickDataEndpoint = '/api/v3/klines';
 
 /**
  * @param {Array<{symbol: string; timeframe: string; smoothing: number}>} params
  */
 const fetchData = async (params) => {
-  const ohlcData = await Promise.all(
-    params.map(({ symbol, timeframe }) => (
-      nodeFetch(`${API_URL}${candlestickDataEndpoint}?symbol=${symbol}&interval=${timeframe}`).then((res) => res.json())
-    )),
-  );
+  let ohlcData;
+
+  try {
+    ohlcData = await Promise.all(
+      params.map(({ symbol, timeframe }) => (
+        axios(`${API_URL}${candlestickDataEndpoint}?symbol=${symbol.toUpperCase()}&interval=${timeframe}`)
+      )),
+    );
+  } catch (error) {
+    console.log(error, '\n', error.response.data.msg);
+  }
 
   return ohlcData;
 };
@@ -25,7 +31,7 @@ const fetchData = async (params) => {
 const fetchOhlc = async (params) => {
   const ohlcAll = await fetchData(params);
 
-  const ohlcData = ohlcAll.reduce((acc, currentOhlc, i) => {
+  const ohlcData = ohlcAll.reduce((acc, { data: currentOhlc }, i) => {
     const _currentOhlc = currentOhlc
       .slice(currentOhlc.length - params[i].smoothing)
       .map(([openTime, o, h, l, c, volume, candleCloseTime]) => {

@@ -2,9 +2,9 @@ const twapPrice = (ohlc) => ohlc.reduce((total, currentOhlc) => total + currentO
 
 const getTwapPos = (ohlc) => {
   const currentTwapPrice = twapPrice(ohlc);
-  const { closePrice } = ohlc[ohlc.length - 1];
+  const { ohlc4 } = ohlc[ohlc.length - 1];
 
-  return currentTwapPrice > closePrice && currentTwapPrice !== closePrice ? 'above' : 'below';
+  return currentTwapPrice > ohlc4 && currentTwapPrice !== ohlc4 ? 'above' : 'below';
 };
 
 module.exports = getTwapPos;

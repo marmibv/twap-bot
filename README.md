@@ -26,6 +26,7 @@ SECRET_KEY=...
 
 - initData in main.js is used when bot is running
   - default setting is btcusdt on 4h timeframe and smoothing 20
+  - right now supported quote is only USDT
 
 - Any timeframe that can be used on Binance can be used here too
   - 1h -> 1 hour, 1d -> 1 day, 1M -> 1 month, etc.

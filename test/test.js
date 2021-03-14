@@ -4,12 +4,12 @@
 /* eslint-disable no-restricted-syntax */
 const { v4: uuidv4 } = require('uuid');
 
-const { fetchData } = require('../src/helpers/fetch-ohlc');
+const { fetchData } = require('../src/api/fetch-ohlc');
 const convertToNumbers = require('../src/helpers/convert-to-numbers');
 const getTwapPos = require('../src/helpers/twap');
 
 const capital = 1000;
-const candles = 401;
+const candles = 201;
 
 const initData = [
   {
@@ -20,7 +20,7 @@ const initData = [
   },
 ];
 
-const entries = {};
+let entries = {};
 
 const test = async () => {
   const rawData = await fetchData(initData);
@@ -60,43 +60,50 @@ const test = async () => {
       const { symbol: currentSymbol, timeframe, smoothing } = initData[j];
 
       if (currentTwapPosition === 'below' && prevTwapPosition !== currentTwapPosition) {
-        entries[currentSymbol] = {
+        entries = {
           price: ohlc[ohlc.length - 1].closePrice,
           type: 'long',
         };
 
-        console.log(
-          'BUY',
-          'Symbol:', currentSymbol,
-          'Timeframe:', timeframe,
-          'Smoothing:', smoothing,
-          `@$${ohlc[ohlc.length - 1].closePrice}`,
-          'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
-        );
+        // console.log(
+        //   'BUY',
+        //   'Symbol:', currentSymbol,
+        //   'Timeframe:', timeframe,
+        //   'Smoothing:', smoothing,
+        //   `@$${ohlc[ohlc.length - 1].closePrice}`,
+        //   'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
+        // );
       } else if (currentTwapPosition === 'above' && prevTwapPosition !== currentTwapPosition) {
-        if (entries[currentSymbol] && entries[currentSymbol].type === 'long') {
-          const entryPrice = entries[currentSymbol].price;
+        if (entries && entries.type === 'long') {
+          const entryPrice = entries.price;
           const currentPrice = ohlc[ohlc.length - 1].closePrice;
 
           const pnl = currentPrice / entryPrice;
 
           initData[j].capital *= pnl;
 
-          entries[currentSymbol].type = 'short';
+          entries.type = 'short';
 
-          console.log(
-            'SELL',
-            'Symbol:', currentSymbol,
-            'Timeframe:', timeframe,
-            'Smoothing:', smoothing,
-            `@$${ohlc[ohlc.length - 1].closePrice}`,
-            'PnL:', `${((pnl - 1) * 100).toFixed(2)}%`,
-            'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
-            '\n',
-          );
+          // console.log(
+          //   'SELL',
+          //   'Symbol:', currentSymbol,
+          //   'Timeframe:', timeframe,
+          //   'Smoothing:', smoothing,
+          //   `@$${ohlc[ohlc.length - 1].closePrice}`,
+          //   'PnL:', `${((pnl - 1) * 100).toFixed(2)}%`,
+          //   'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
+          //   '\n',
+          // );
         }
       }
     }
+
+    // console.log(
+    //   'LAST TRADE:',
+    //   initData[j].symbol,
+    //   entries.price,
+    //   entries.type,
+    // );
 
     j++;
   }

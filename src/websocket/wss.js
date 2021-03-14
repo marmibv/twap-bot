@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 
-const WSS_URL = 'wss://fstream.binance.com';
+const { WSS_URL } = require('../constants');
 
 /**
  * @param {Array<{symbol: string; timeframe: string; smoothing: number}>} params
