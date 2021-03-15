@@ -26,7 +26,7 @@ const test = async () => {
   const rawData = await fetchData(initData);
 
   const markets = rawData
-    .reduce((acc, market, i) => {
+    .reduce((acc, { data: market }, i) => {
       console.log('Start date:', new Date(market[0][0]), market[0][0]);
 
       return {

@@ -5,8 +5,6 @@
     - OHLC data
   - Sets up Websocket connection
 
-- [ ] Create logger
-
 - [x] Test function
   - Test profitability based on previous data
 
@@ -17,15 +15,15 @@
 - Buy/Sell via Binance/FTX API
 
 - On buy
-  - [ ] Check for available funds
+  - [x] Check for available funds
     - If none, do nothing
     - If there are, buy asset
 
 - On sell
-  - [ ] Check if there is position opened
+  - [X] Check if there is position opened
     - If yes, close position
     - If no, do nothing
 
 # OTHER
 
-- [ ] Ability to open short positions
+- [ ] Support for short positions
