@@ -2,7 +2,9 @@
 const axios = require('axios');
 
 const { API_URL } = require('../constants');
+
 const convertToNumbers = require('../helpers/convert-to-numbers');
+const logger = require('../helpers/logger');
 
 const candlestickDataEndpoint = '/api/v3/klines';
 
@@ -19,7 +21,8 @@ const fetchData = async (params) => {
       )),
     );
   } catch (error) {
-    console.log(error, '\n', error.response.data.msg);
+    logger(error);
+    throw new Error(`${error.response.data.msg.toUpperCase()}`);
   }
 
   return ohlcData;

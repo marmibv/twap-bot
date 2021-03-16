@@ -3,6 +3,7 @@ const qs = require('qs');
 
 const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
+const logger = require('../helpers/logger');
 
 const { API_URL } = require('../constants');
 
@@ -38,7 +39,8 @@ const getUserBalance = async (params) => {
       ownedAssets,
     };
   } catch (error) {
-    console.log(error);
+    logger(error);
+    throw new Error(error.response.data.msg);
   }
 
   return userBalances;

@@ -4,29 +4,28 @@ const qs = require('qs');
 const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
 const convertToLot = require('../helpers/convert-to-lot');
+const logger = require('../helpers/logger');
 
+const { maxOpenedPositions } = require('../../main.config');
 const { API_URL } = require('../constants');
 
 const newOrderEndpoint = '/api/v3/order';
 
-const maxPositions = 2;
-
 const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, assetFilter) => {
   if (
-    openedPositions.length >= maxPositions
+    openedPositions.length >= maxOpenedPositions
     || usdtBalance < 11
     || openedPositions.find(({ asset }) => asset === removeQuote(symbol))
     || (!openedPositions.length && usdtBalance < 21)
   ) {
-    // console.log('BUY - Do nothing', symbol, usdtBalance);
+    logger('BUY - Do nothing', symbol, usdtBalance);
     return;
   }
 
-  const availableBalance = !openedPositions.length ? (usdtBalance - 0.5) / maxPositions : usdtBalance - 0.5;
+  // FIX: Support for more than 2 opened positions
+  const availableBalance = !openedPositions.length ? (usdtBalance - 0.5) / maxOpenedPositions : usdtBalance - 0.5;
 
   const quantity = convertToLot(availableBalance / currentPrice, assetFilter.decimals);
-
-  // console.log(quantity);
 
   const queryString = qs.stringify({
     quantity,
@@ -51,24 +50,22 @@ const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, 
       throw new Error(res.message);
     }
   } catch (error) {
-    console.log(error, '\n', error.response.data.msg);
+    logger(error, '\n', error.response.data.msg);
   }
 
-  // console.log('BUY', symbol, `@$${currentPrice}`, availableBalance, quantity);
+  logger('BUY', symbol, `@$${currentPrice}`, availableBalance, quantity);
 };
 
 const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter) => {
   const currentPosition = openedPositions.find(({ asset }) => asset === removeQuote(symbol));
 
   if (!openedPositions.length || !currentPosition) {
-    // console.log('SELL - do nothing', symbol);
+    logger('SELL - do nothing', symbol);
     return;
   }
 
   const { free } = currentPosition;
   const assetBalance = convertToLot(free, assetFilter.decimals);
-
-  // console.log('SELL', symbol, `@$${currentPrice}`, assetBalance);
 
   const queryString = qs.stringify({
     symbol: symbol.toUpperCase(),
@@ -93,8 +90,10 @@ const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter)
       throw new Error(res.message);
     }
   } catch (error) {
-    console.log(error, '\n', error.response.data.msg);
+    logger(error, '\n', error.response.data.msg);
   }
+
+  logger('SELL', symbol, `@$${currentPrice}`, assetBalance);
 };
 
 module.exports = {

@@ -8,7 +8,7 @@
 
 ### Install dependencies
 
-```bash
+```sh
 npm i
 ```
 
@@ -20,47 +20,88 @@ API_KEY=...
 SECRET_KEY=...
 ```
 
-### Setup base variables
+### Setup base config for bot
 
-#### Main.js
+- Data from main.config.js is used when bot is running
 
-- initData in main.js is used when bot is running
-  - default setting is btcusdt on 4h timeframe and smoothing 20
-  - right now supported quote is only USDT
+#### Watched assets
 
-- Any timeframe that can be used on Binance can be used here too
-  - 1h -> 1 hour, 1d -> 1 day, 1M -> 1 month, etc.
+- Any assets that bot should be watching must be in watchedAssets
+  - Every asset object contains
+    - symbol
+      - Market pair tradable on Binance, must be in lower case
+      - Right now only supported quote is USDT
+      - Symbols can not repeat
+    - timeframe
+      - Any timeframe supported on Binance
+      - Supported format: 1h -> 1 hour, 1d -> 1 day, 1M -> 1 month, etc.
+    - smoothing
+      - Twap smoothing
 
-- it can contain any number of market pairs
-  - Market pairs can not repeat
-  - All market pairs must be tradable on Binance futures
+- Default config is btcusdt on 4h timeframe and smoothing 20
 
-- Example:
+- Example of what watchedAssets should look like
 
 ```js
-const initData = [
-  {
-    symbol: 'btcusdt',
-    timeframe: '1h',
-    smoothing: 15,
-  },
-  {
-    symbol: 'ethusdt',
-    timeframe: '1h',
-    smoothing: 15,
-  },
-  {
-    symbol: 'btcusdt',  /* This will not work, even thought timeframe and smoothing is different */
-    timeframe: '2h',
-    smoothing: 20,
-  },
-];
+// main.config.js
+
+module.exports = {
+  watchedAssets: [
+    {
+      symbol: 'btcusdt',
+      timeframe: '1h',
+      smoothing: 15,
+    },
+    {
+      symbol: 'ethusdt',
+      timeframe: '1h',
+      smoothing: 15,
+    },
+    {
+      symbol: 'btcusdt',  /* This will not work, even thought timeframe and smoothing is different */
+      timeframe: '2h',
+      smoothing: 20,
+    },
+  ],
+};
 ```
 
-#### Test.js
+#### Max opened positions
+
+- Maximum opened positions at once
+  - can not be 0
+  - must be equal or lower than 2
+    - Support for more should be added soon
+
+```js
+// main.config.js
+
+module.exports = {
+  // ...
+  maxOpenedPositions: 2,
+};
+```
+
+#### logOutput
+
+- Set to true in order to see output in console
+  - is not mandatory in order for bot to function properly
+
+- This can also be set as environment variable LOG_OUTPUT
+
+```js
+// main.config.js
+
+module.exports = {
+  // ...
+  logOutput: true,
+};
+``` 
+
+### Setup base config for tests
 
 - capital is the initial balance, default setting is 1000
-- candles represents the number of candles from which the market data is used
+- candles represents the number of candles from which the market data is used + 1
 
 - initData in test.js is used when tests are running
   - default setting is btcusdt on 4h timeframe and smoothing 20
@@ -95,11 +136,9 @@ const initData = [
 ];
 ```
 
-## Run
+## Start bot
 
-- Run bot
-
-```bash
+```sh
 npm start
 ```
 
@@ -107,6 +146,6 @@ npm start
 
 - Run tests based on previous market data
 
-```bash
+```sh
 npm test
 ```

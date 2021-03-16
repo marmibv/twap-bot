@@ -1,27 +1,23 @@
+require('dotenv').config();
+
+const { watchedAssets } = require('../main.config');
+
 const { fetchOhlc } = require('./api/fetch-ohlc');
 const getUserPositions = require('./api/get-user-positions');
 const { sendSellOrder, sendBuyOrder } = require('./api/sendOrder');
 const getAssetFilters = require('./api/get-asset-filters');
 const establishBnbWss = require('./websocket/wss');
 
+const validateBaseConfig = require('./helpers/validate-base-config');
 const getTwapPos = require('./helpers/twap');
 const getOhlc = require('./helpers/get-ohlc');
 const { getOpenedPositions } = require('./helpers/get-opened-positions');
-
-require('dotenv').config();
-
-const initData = [
-  {
-    symbol: 'btcusdt',
-    timeframe: '4h',
-    smoothing: 20,
-  },
-];
+const logger = require('./helpers/logger');
 
 const init = async (_initData) => {
-  console.log(
+  logger(
     'Watching:\n',
-    initData.map(({ symbol, timeframe, smoothing }) => `Symbol: ${symbol}\n Timeframe: ${timeframe}\n Smoothing: ${smoothing}`).join('\n'),
+    _initData.map(({ symbol, timeframe, smoothing }) => `Symbol: ${symbol}\n Timeframe: ${timeframe}\n Smoothing: ${smoothing}`).join('\n'),
   );
 
   const ohlc = await fetchOhlc(_initData);
@@ -31,12 +27,13 @@ const init = async (_initData) => {
 
   bnbWss.on('message', async (dataJSON) => {
     if (!dataJSON || !Object.values(ohlc).length) return;
+
     const { stream, data } = JSON.parse(dataJSON);
 
     const [_streamSymbol] = stream.split('@');
-    const { k } = data;
+    const { k: candleData } = data;
 
-    const { ohlc: _ohlc, newCandle } = getOhlc(ohlc[_streamSymbol], k);
+    const { ohlc: _ohlc, newCandle } = getOhlc(ohlc[_streamSymbol], candleData);
 
     if (newCandle) {
       const { availableBalance, ownedAssets } = await getUserPositions(_initData);
@@ -61,4 +58,6 @@ const init = async (_initData) => {
   });
 };
 
-init(initData);
+validateBaseConfig();
+
+init(watchedAssets);

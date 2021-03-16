@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const removeQuote = require('../helpers/removeQuote');
+const logger = require('../helpers/logger');
 
 const { API_URL } = require('../constants');
 
@@ -29,7 +30,8 @@ const getAssetFilters = async (initData) => {
       };
     });
   } catch (error) {
-    console.log(error);
+    logger(error);
+    throw new Error(error.response.data.msg);
   }
 
   return assetFilters;

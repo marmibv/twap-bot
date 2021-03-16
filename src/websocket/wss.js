@@ -1,5 +1,7 @@
 const WebSocket = require('ws');
 
+const logger = require('../helpers/logger');
+
 const { WSS_URL } = require('../constants');
 
 /**
@@ -14,7 +16,7 @@ const connectToWs = (params) => {
   });
 
   bnbWss.on('open', () => {
-    console.log('\nConnected');
+    logger('\nConnected');
   });
 
   return bnbWss;

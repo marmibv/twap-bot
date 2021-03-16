@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { fetchData } = require('../src/api/fetch-ohlc');
 const convertToNumbers = require('../src/helpers/convert-to-numbers');
 const getTwapPos = require('../src/helpers/twap');
+const logger = require('../src/helpers/logger');
 
 const capital = 1000;
 const candles = 201;
@@ -27,7 +28,7 @@ const test = async () => {
 
   const markets = rawData
     .reduce((acc, { data: market }, i) => {
-      console.log('Start date:', new Date(market[0][0]), market[0][0]);
+      logger('Start date:', initData[i].symbol.toUpperCase(), new Date(market[0][0]));
 
       return {
         ...acc,
@@ -65,7 +66,7 @@ const test = async () => {
           type: 'long',
         };
 
-        // console.log(
+        // logger(
         //   'BUY',
         //   'Symbol:', currentSymbol,
         //   'Timeframe:', timeframe,
@@ -84,7 +85,7 @@ const test = async () => {
 
           entries.type = 'short';
 
-          // console.log(
+          // logger(
           //   'SELL',
           //   'Symbol:', currentSymbol,
           //   'Timeframe:', timeframe,
@@ -98,7 +99,7 @@ const test = async () => {
       }
     }
 
-    // console.log(
+    // logger(
     //   'LAST TRADE:',
     //   initData[j].symbol,
     //   entries.price,
@@ -111,7 +112,7 @@ const test = async () => {
   initData.forEach(({
     capital: _capital, symbol, timeframe, smoothing,
   }) => {
-    console.log(
+    logger(
       'Symbol:', symbol.toUpperCase(),
       'Timeframe:', timeframe,
       'Smoothing:', smoothing,

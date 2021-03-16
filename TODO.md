@@ -5,6 +5,8 @@
     - OHLC data
   - Sets up Websocket connection
 
+- [x] Create logger
+
 - [x] Test function
   - Test profitability based on previous data
 
