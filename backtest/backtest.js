@@ -15,13 +15,31 @@ const candles = 201;
 const initData = [
   {
     capital,
-    symbol: 'btcusdt',
-    timeframe: '4h',
+    symbol: 'injusdt',
+    timeframe: '1d',
+    smoothing: 15,
+  },
+  {
+    capital,
+    symbol: 'injusdt',
+    timeframe: '1d',
     smoothing: 20,
+  },
+  {
+    capital,
+    symbol: 'injusdt',
+    timeframe: '1d',
+    smoothing: 30,
+  },
+  {
+    capital,
+    symbol: 'injusdt',
+    timeframe: '1d',
+    smoothing: 35,
   },
 ];
 
-let entries = {};
+let entry = {};
 
 const test = async () => {
   const rawData = await fetchData(initData);
@@ -61,7 +79,7 @@ const test = async () => {
       const { symbol: currentSymbol, timeframe, smoothing } = initData[j];
 
       if (currentTwapPosition === 'below' && prevTwapPosition !== currentTwapPosition) {
-        entries = {
+        entry = {
           price: ohlc[ohlc.length - 1].closePrice,
           type: 'long',
         };
@@ -75,15 +93,16 @@ const test = async () => {
         //   'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
         // );
       } else if (currentTwapPosition === 'above' && prevTwapPosition !== currentTwapPosition) {
-        if (entries && entries.type === 'long') {
-          const entryPrice = entries.price;
+        if (entry && entry.type === 'long') {
+          const entryPrice = entry.price;
           const currentPrice = ohlc[ohlc.length - 1].closePrice;
 
           const pnl = currentPrice / entryPrice;
 
           initData[j].capital *= pnl;
 
-          entries.type = 'short';
+          entry.price = currentPrice;
+          entry.type = 'short';
 
           // logger(
           //   'SELL',
@@ -99,12 +118,12 @@ const test = async () => {
       }
     }
 
-    // logger(
-    //   'LAST TRADE:',
-    //   initData[j].symbol,
-    //   entries.price,
-    //   entries.type,
-    // );
+    logger(
+      'LAST TRADE:',
+      initData[j].symbol,
+      entry.price,
+      entry.type,
+    );
 
     j++;
   }

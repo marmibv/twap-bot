@@ -3,7 +3,7 @@ const qs = require('qs');
 
 const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
-const convertToLot = require('../helpers/convert-to-lot');
+const floor = require('../helpers/floor');
 const logger = require('../helpers/logger');
 
 const { maxOpenedPositions } = require('../../main.config');
@@ -25,7 +25,7 @@ const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, 
   // FIX: Support for more than 2 opened positions
   const availableBalance = !openedPositions.length ? (usdtBalance - 0.5) / maxOpenedPositions : usdtBalance - 0.5;
 
-  const quantity = convertToLot(availableBalance / currentPrice, assetFilter.decimals);
+  const quantity = floor(availableBalance / currentPrice, assetFilter.decimals);
 
   const queryString = qs.stringify({
     quantity,
@@ -65,7 +65,7 @@ const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter)
   }
 
   const { free } = currentPosition;
-  const assetBalance = convertToLot(free, assetFilter.decimals);
+  const assetBalance = floor(free, assetFilter.decimals);
 
   const queryString = qs.stringify({
     symbol: symbol.toUpperCase(),

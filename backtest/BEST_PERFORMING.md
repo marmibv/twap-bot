@@ -8,7 +8,7 @@
   - smoothing: 35
 
 - CRVUSDT
-  - smoothing: 35
+  - smoothing: 30
 
 - SOLUSDT
   - smoothing: 20

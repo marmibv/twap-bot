@@ -1,19 +1,22 @@
 {
   "name": "twap-bot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trading bot based on TWAP",
   "main": "index.js",
   "scripts": {
     "start": "node src/main.js",
     "dev": "nodemon src/main.js",
-    "test": "LOG_OUTPUT=true node test/test.js"
+    "test": "mocha test/*/**",
+    "backtest": "LOG_OUTPUT=true node backtest/backtest.js"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "axios": "^0.21.1",
+    "chai": "^4.3.4",
     "dotenv": "^8.2.0",
+    "mocha": "^8.3.2",
     "qs": "^6.9.6",
     "uuid": "^8.3.2",
     "ws": "^7.4.4"

@@ -8,7 +8,7 @@ const { sendSellOrder, sendBuyOrder } = require('./api/sendOrder');
 const getAssetFilters = require('./api/get-asset-filters');
 const establishBnbWss = require('./websocket/wss');
 
-const validateBaseConfig = require('./helpers/validate-base-config');
+const { validateBaseConfig } = require('./helpers/validate-base-config');
 const getTwapPos = require('./helpers/twap');
 const getOhlc = require('./helpers/get-ohlc');
 const { getOpenedPositions } = require('./helpers/get-opened-positions');

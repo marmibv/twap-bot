@@ -1,7 +1,7 @@
-const convertToLot = (qty, minDecimals) => {
+const floor = (qty, minDecimals) => {
   const [int, decimal] = qty.toString().split('.');
 
-  if (!decimal) {
+  if (!decimal && minDecimals === 0) {
     return int;
   }
 
@@ -10,4 +10,4 @@ const convertToLot = (qty, minDecimals) => {
   return Number(`${int}.${lotSizeDecimal}`);
 };
 
-module.exports = convertToLot;
+module.exports = floor;
