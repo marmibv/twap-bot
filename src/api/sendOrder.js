@@ -103,7 +103,9 @@ const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter)
   logger('SELL', symbol, `@$${currentPrice}`, assetBalance);
 
   if (sendMessage) {
-    sendMessage(`Sold ${assetBalance} ${removeQuote(symbol).toUpperCase()} @ $${currentPrice}\n${Number.isNaN(pnl) ? '' : `PnL: ${pnl}%`}`);
+    sendMessage(`Sold ${assetBalance} ${removeQuote(symbol).toUpperCase()} @ $${currentPrice}\n${
+      Number.isNaN(pnl) ? '' : `PnL: ${pnl.toFixed(2)}%`
+    }`);
   }
 };
 

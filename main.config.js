@@ -3,7 +3,7 @@ module.exports = {
     {
       symbol: 'btcusdt',
       timeframe: '4h',
-      smoothing: 10,
+      smoothing: 20,
     },
   ],
   maxOpenedPositions: 2,
