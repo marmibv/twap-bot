@@ -18,6 +18,7 @@ npm i
 ```.env
 API_KEY=...
 SECRET_KEY=...
+DISCORD_BOT_TOKEN=...
 ```
 
 ### Setup base config for bot
@@ -96,7 +97,46 @@ module.exports = {
   // ...
   logOutput: true,
 };
-``` 
+```
+
+### Discord messages
+
+- If you want to get Discord messages when bot executes buy or sell and access to some commands also set these variables
+
+#### DISCORD_BOT_TOKEN
+
+- Bot token from your own discord bot
+
+```.env
+...
+DISCORD_BOT_TOKEN=...
+```
+
+#### Discord DM channel ID
+
+- Discord direct message channel id with your bot
+
+```js
+// main.config.js
+
+module.exports = {
+  // ...
+  discordDMChannelId: '...',
+};
+```
+
+#### Discord user ID
+
+- Your discord user id
+
+```js
+// main.config.js
+
+module.exports = {
+  // ...
+  discordUserId: '...',
+};
+```
 
 ### Setup base config for tests
 

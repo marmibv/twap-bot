@@ -1,6 +1,7 @@
 const axios = require('axios').default;
 const qs = require('qs');
 
+const sendMessage = require('../discord-client/discord-client');
 const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
 const floor = require('../helpers/floor');
@@ -10,6 +11,18 @@ const { maxOpenedPositions } = require('../../main.config');
 const { API_URL } = require('../constants');
 
 const newOrderEndpoint = '/api/v3/order';
+
+const entries = {};
+
+const createQueryString = (symbol, side, quantity) => (
+  qs.stringify({
+    quantity,
+    side,
+    symbol: symbol.toUpperCase(),
+    type: 'MARKET',
+    timestamp: Date.now(),
+  })
+);
 
 const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, assetFilter) => {
   if (
@@ -27,14 +40,7 @@ const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, 
 
   const quantity = floor(availableBalance / currentPrice, assetFilter.decimals);
 
-  const queryString = qs.stringify({
-    quantity,
-    symbol: symbol.toUpperCase(),
-    side: 'BUY',
-    type: 'MARKET',
-    timestamp: Date.now(),
-  });
-
+  const queryString = createQueryString(symbol, 'BUY', quantity);
   const sign = encode(queryString);
 
   try {
@@ -53,7 +59,13 @@ const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, 
     logger(error, '\n', error.response.data.msg);
   }
 
+  entries[symbol] = currentPrice;
+
   logger('BUY', symbol, `@$${currentPrice}`, availableBalance, quantity);
+
+  if (sendMessage) {
+    sendMessage(`Bought ${quantity} ${removeQuote(symbol).toUpperCase()} @ $${currentPrice}`);
+  }
 };
 
 const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter) => {
@@ -67,14 +79,7 @@ const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter)
   const { free } = currentPosition;
   const assetBalance = floor(free, assetFilter.decimals);
 
-  const queryString = qs.stringify({
-    symbol: symbol.toUpperCase(),
-    side: 'SELL',
-    type: 'MARKET',
-    quantity: assetBalance,
-    timestamp: Date.now(),
-  });
-
+  const queryString = createQueryString(symbol, 'SELL', assetBalance);
   const sign = encode(queryString);
 
   try {
@@ -93,7 +98,13 @@ const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter)
     logger(error, '\n', error.response.data.msg);
   }
 
+  const pnl = (currentPrice / entries[symbol] - 1) * 100;
+
   logger('SELL', symbol, `@$${currentPrice}`, assetBalance);
+
+  if (sendMessage) {
+    sendMessage(`Sold ${assetBalance} ${removeQuote(symbol).toUpperCase()} @ $${currentPrice}\n${Number.isNaN(pnl) ? '' : `PnL: ${pnl}%`}`);
+  }
 };
 
 module.exports = {

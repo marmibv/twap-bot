@@ -3,10 +3,10 @@ module.exports = {
     {
       symbol: 'btcusdt',
       timeframe: '4h',
-      smoothing: 20,
+      smoothing: 10,
     },
   ],
   maxOpenedPositions: 2,
-  // Uncomment logOutput for output in console
+  // Comment/delete logOutput to disable output in console
   logOutput: true,
 };

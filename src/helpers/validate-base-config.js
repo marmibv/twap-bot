@@ -1,7 +1,7 @@
 const { watchedAssets, maxOpenedPositions } = require('../../main.config');
 
 const validateWatchedAssets = (_watchedAssets) => {
-  if (!_watchedAssets.length) {
+  if (!_watchedAssets || !_watchedAssets.length) {
     throw new Error('You need to specify watchedAssets in main.config.js');
   }
 

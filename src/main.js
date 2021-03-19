@@ -3,7 +3,7 @@ require('dotenv').config();
 const { watchedAssets } = require('../main.config');
 
 const { fetchOhlc } = require('./api/fetch-ohlc');
-const getUserPositions = require('./api/get-user-positions');
+const getUserBalances = require('./api/get-user-balances');
 const { sendSellOrder, sendBuyOrder } = require('./api/sendOrder');
 const getAssetFilters = require('./api/get-asset-filters');
 const establishBnbWss = require('./websocket/wss');
@@ -36,8 +36,8 @@ const init = async (_initData) => {
     const { ohlc: _ohlc, newCandle } = getOhlc(ohlc[_streamSymbol], candleData);
 
     if (newCandle) {
-      const { availableBalance, ownedAssets } = await getUserPositions(_initData);
-      const openedPositions = getOpenedPositions(ownedAssets, assetFilters, ohlc);
+      const { availableBalance, tradedAssets } = await getUserBalances(_initData);
+      const openedPositions = getOpenedPositions(tradedAssets, assetFilters, ohlc);
 
       const prevTwapPosition = getTwapPos(ohlc[_streamSymbol]);
 

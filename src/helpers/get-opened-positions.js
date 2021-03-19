@@ -5,10 +5,10 @@ const getLastPrices = (ohlc) => (
   }), {})
 );
 
-const getOpenedPositions = (ownedAssets, assetFilters, ohlc) => {
+const getOpenedPositions = (tradedAssets, assetFilters, ohlc) => {
   const lastPrices = getLastPrices(ohlc);
 
-  const openedPositions = ownedAssets.filter(({ asset, free }) => {
+  const openedPositions = tradedAssets.filter(({ asset, free }) => {
     const { minNotional } = assetFilters[`${asset}USDT`];
 
     return free > minNotional / lastPrices[`${asset}USDT`];

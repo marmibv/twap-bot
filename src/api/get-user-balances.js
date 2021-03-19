@@ -9,7 +9,7 @@ const { API_URL } = require('../constants');
 
 const balanceEndpoint = '/api/v3/account';
 
-const getUserBalance = async (params) => {
+const getUserBalances = async (params) => {
   const queryString = qs.stringify({
     timestamp: Date.now(),
   });
@@ -31,12 +31,14 @@ const getUserBalance = async (params) => {
 
     const { free: availableBalance } = balances.find(({ asset }) => asset === 'USDT');
 
-    const tradedAssets = params.map(({ symbol }) => removeQuote(symbol));
-    const ownedAssets = balances.filter(({ asset, free }) => tradedAssets.includes(asset) && free > 0);
+    const tradedAssetsSymbols = params.map(({ symbol }) => removeQuote(symbol));
+    const ownedAssets = balances.filter(({ free }) => free > 0);
+    const tradedAssets = ownedAssets.filter(({ asset }) => tradedAssetsSymbols.includes(asset));
 
     userBalances = {
       availableBalance,
       ownedAssets,
+      tradedAssets,
     };
   } catch (error) {
     logger(error);
@@ -46,4 +48,4 @@ const getUserBalance = async (params) => {
   return userBalances;
 };
 
-module.exports = getUserBalance;
+module.exports = getUserBalances;
