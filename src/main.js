@@ -23,9 +23,7 @@ const init = async (_initData) => {
   const ohlc = await fetchOhlc(_initData);
   const assetFilters = await getAssetFilters(_initData);
 
-  const bnbWss = establishBnbWss(_initData);
-
-  bnbWss.on('message', async (dataJSON) => {
+  const onMessage = async (dataJSON) => {
     if (!dataJSON || !Object.values(ohlc).length) return;
 
     const { stream, data } = JSON.parse(dataJSON);
@@ -55,7 +53,9 @@ const init = async (_initData) => {
         sendSellOrder(openedPositions, _streamSymbol, currentPrice, currentAssetFilter);
       }
     }
-  });
+  };
+
+  establishBnbWss(_initData, onMessage);
 };
 
 validateBaseConfig();

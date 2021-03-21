@@ -26,7 +26,7 @@ const getAssetFilters = async (initData) => {
       const [lotSize, minNotional] = filters.filter(({ filterType }) => filterType === 'LOT_SIZE' || filterType === 'MIN_NOTIONAL');
       assetFilters[symbol] = {
         minNotional: Number(minNotional.minNotional),
-        decimals: Number(lotSize.stepSize).toString().split('.').reverse()[0].length,
+        decimals: lotSize.stepSize.toString().split('.')[1]?.length || 0,
       };
     });
   } catch (error) {

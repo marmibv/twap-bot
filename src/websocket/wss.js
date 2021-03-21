@@ -7,19 +7,27 @@ const { WSS_URL } = require('../constants');
 /**
  * @param {Array<{symbol: string; timeframe: string; smoothing: number}>} params
  */
-const connectToWs = (params) => {
+const connectToWs = (params, onMessageFn) => {
   const streams = params.map(({ symbol, timeframe }) => `${symbol}@kline_${timeframe}`).join('/');
 
-  const bnbWss = new WebSocket(`${WSS_URL}/stream?streams=${streams}`, {
-    method: 'SUBSCRIBE',
-    id: 1,
-  });
+  const initWs = () => {
+    const bnbWs = new WebSocket(`${WSS_URL}/stream?streams=${streams}`, {
+      method: 'SUBSCRIBE',
+      id: 1,
+    });
 
-  bnbWss.on('open', () => {
-    logger('\nConnected');
-  });
+    bnbWs.on('open', () => {
+      logger('\nConnected');
+    });
 
-  return bnbWss;
+    bnbWs.on('message', onMessageFn);
+
+    bnbWs.on('close', () => {
+      initWs();
+    });
+  };
+
+  initWs();
 };
 
 module.exports = connectToWs;

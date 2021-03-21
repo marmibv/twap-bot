@@ -15,7 +15,7 @@ const candles = 201;
 const initData = [
   {
     capital,
-    symbol: 'btcutsdt',
+    symbol: 'btcusdt',
     timeframe: '4h',
     smoothing: 20,
   },
