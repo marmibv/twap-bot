@@ -26,13 +26,16 @@ const getAssetFilters = async (initData) => {
       const [lotSize, minNotional] = filters.filter(({ filterType }) => filterType === 'LOT_SIZE' || filterType === 'MIN_NOTIONAL');
       assetFilters[symbol] = {
         minNotional: Number(minNotional.minNotional),
-        decimals: lotSize.stepSize.toString().split('.')[1]?.length || 0,
+        // Convert to number to cut off trailing zeros
+        decimals: Number(lotSize.stepSize).toString().split('.')[1]?.length || 0,
       };
     });
   } catch (error) {
     logger(error);
     throw new Error(error.response.data.msg);
   }
+
+  console.log(assetFilters);
 
   return assetFilters;
 };
