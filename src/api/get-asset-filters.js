@@ -35,8 +35,6 @@ const getAssetFilters = async (initData) => {
     throw new Error(error.response.data.msg);
   }
 
-  console.log(assetFilters);
-
   return assetFilters;
 };
 

@@ -1,3 +1,5 @@
+const Binance = require('node-binance-api');
+
 require('dotenv').config();
 
 const { watchedAssets } = require('../main.config');
@@ -6,7 +8,6 @@ const { fetchOhlc } = require('./api/fetch-ohlc');
 const getUserBalances = require('./api/get-user-balances');
 const { sendSellOrder, sendBuyOrder } = require('./api/sendOrder');
 const getAssetFilters = require('./api/get-asset-filters');
-const establishBnbWss = require('./websocket/wss');
 
 const { validateBaseConfig } = require('./helpers/validate-base-config');
 const getTwapPos = require('./helpers/twap');
@@ -15,26 +16,33 @@ const { getOpenedPositions } = require('./helpers/get-opened-positions');
 const logger = require('./helpers/logger');
 
 const init = async (_initData) => {
+  validateBaseConfig();
+
   logger(
     'Watching:\n',
     _initData.map(({ symbol, timeframe, smoothing }) => `Symbol: ${symbol}\n Timeframe: ${timeframe}\n Smoothing: ${smoothing}`).join('\n'),
   );
 
-  const ohlc = await fetchOhlc(_initData);
+  const binance = new Binance().options({
+    APIKEY: process.env.API_KEY,
+    APISECRET: process.env.SECRET_KEY,
+  });
+
+  const ohlc = await fetchOhlc(binance, _initData);
   const assetFilters = await getAssetFilters(_initData);
 
-  const onMessage = async (dataJSON) => {
-    if (!dataJSON || !Object.values(ohlc).length) return;
+  binance.websockets.candlesticks(_initData.map(({ symbol }) => symbol.toUpperCase()), '1d', async (candlesticks) => {
+    if (!candlesticks || !Object.values(ohlc).length) {
+      return;
+    }
 
-    const { stream, data } = JSON.parse(dataJSON);
-
-    const [_streamSymbol] = stream.split('@');
-    const { k: candleData } = data;
+    const { k: candleData, s: streamSymbol } = candlesticks;
+    const _streamSymbol = streamSymbol.toLowerCase();
 
     const { ohlc: _ohlc, newCandle } = getOhlc(ohlc[_streamSymbol], candleData);
 
     if (newCandle) {
-      const { availableBalance, tradedAssets } = await getUserBalances(_initData);
+      const { availableBalance, tradedAssets } = await getUserBalances(binance, _initData);
       const openedPositions = getOpenedPositions(tradedAssets, assetFilters, ohlc);
 
       const prevTwapPosition = getTwapPos(ohlc[_streamSymbol]);
@@ -48,16 +56,12 @@ const init = async (_initData) => {
       const twapPosition = getTwapPos(currentOhlc);
 
       if (twapPosition === 'below' && prevTwapPosition !== twapPosition) {
-        sendBuyOrder(openedPositions, availableBalance, _streamSymbol, currentPrice, currentAssetFilter);
+        sendBuyOrder(binance, openedPositions, availableBalance, _streamSymbol, currentPrice, currentAssetFilter);
       } else if (twapPosition === 'above' && prevTwapPosition !== twapPosition) {
-        sendSellOrder(openedPositions, _streamSymbol, currentPrice, currentAssetFilter);
+        sendSellOrder(binance, openedPositions, _streamSymbol, currentPrice, currentAssetFilter);
       }
     }
-  };
-
-  establishBnbWss(_initData, onMessage);
+  });
 };
-
-validateBaseConfig();
 
 init(watchedAssets);

@@ -17,7 +17,7 @@ const initData = [
     capital,
     symbol: 'btcusdt',
     timeframe: '4h',
-    smoothing: 20,
+    smoothing: 15,
   },
 ];
 

@@ -1,48 +1,42 @@
-const axios = require('axios').default;
-const qs = require('qs');
-
-const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
 const logger = require('../helpers/logger');
 
-const { API_URL } = require('../constants');
-
-const balanceEndpoint = '/api/v3/account';
-
-const getUserBalances = async (params) => {
-  const queryString = qs.stringify({
-    timestamp: Date.now(),
-  });
-
-  const sign = encode(queryString);
-
-  let userBalances;
+const getUserBalances = async (binance, params) => {
+  const userBalances = {};
 
   try {
-    const res = await axios({
-      method: 'GET',
-      url: `${API_URL}${balanceEndpoint}?${queryString}&signature=${sign}`,
-      headers: {
-        'X-MBX-APIKEY': process.env.API_KEY,
-      },
+    await new Promise((resolve, reject) => {
+      binance.balance((error, balances) => {
+        if (error) {
+          reject(error);
+        }
+
+        userBalances.availableBalance = balances.USDT.available;
+
+        const tradedSymbols = params.map(({ symbol }) => removeQuote(symbol));
+        const ownedAssets = Object.keys(balances).reduce((acc, symbol) => (
+          balances[symbol].available > 0
+            ? [
+              ...acc,
+              {
+                asset: symbol,
+                free: balances[symbol].available,
+              },
+            ]
+            : acc
+        ), []);
+        const tradedAssets = tradedSymbols.map((symbol) => ({
+          asset: symbol.toUpperCase(),
+          free: balances[symbol.toUpperCase()].available,
+        }));
+
+        userBalances.ownedAssets = ownedAssets;
+        userBalances.tradedAssets = tradedAssets;
+        resolve();
+      });
     });
-
-    const { balances } = res.data;
-
-    const { free: availableBalance } = balances.find(({ asset }) => asset === 'USDT');
-
-    const tradedAssetsSymbols = params.map(({ symbol }) => removeQuote(symbol));
-    const ownedAssets = balances.filter(({ free }) => free > 0);
-    const tradedAssets = ownedAssets.filter(({ asset }) => tradedAssetsSymbols.includes(asset));
-
-    userBalances = {
-      availableBalance,
-      ownedAssets,
-      tradedAssets,
-    };
   } catch (error) {
     logger(error);
-    throw new Error(error.response.data.msg);
   }
 
   return userBalances;

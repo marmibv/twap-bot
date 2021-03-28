@@ -1,62 +1,52 @@
 /* eslint-disable no-unused-vars */
-const axios = require('axios');
-
-const { API_URL } = require('../constants');
-
 const convertToNumbers = require('../helpers/convert-to-numbers');
 const logger = require('../helpers/logger');
 
-const candlestickDataEndpoint = '/api/v3/klines';
+const fetchData = (binance, params, limit = null) => (
+  Promise.all(
+    params.map(({ symbol, timeframe, smoothing }) => (
+      new Promise((resolve, reject) => {
+        binance.candlesticks(symbol.toUpperCase(), timeframe, (error, ticks, _symbol) => {
+          if (error) {
+            reject(error);
+            return;
+          }
 
-/**
- * @param {Array<{symbol: string; timeframe: string; smoothing: number}>} params
- */
-const fetchData = async (params) => {
-  let ohlcData;
+          const currentOhlcData = ticks.map(([openTime, o, h, l, c, volume, candleCloseTime]) => {
+            const [open, high, low, close] = convertToNumbers([o, h, l, c]);
+
+            return {
+              closePrice: close,
+              ohlc4: (open + high + low + close) / 4,
+              candleCloseTime,
+            };
+          });
+
+          currentOhlcData.unshift(_symbol);
+
+          resolve(currentOhlcData);
+        }, { limit: limit || smoothing });
+      })
+    )),
+  )
+);
+
+const fetchOhlc = async (binance, params) => {
+  const ohlcData = {};
 
   try {
-    ohlcData = await Promise.all(
-      params.map(({ symbol, timeframe }) => (
-        axios(`${API_URL}${candlestickDataEndpoint}?symbol=${symbol.toUpperCase()}&interval=${timeframe}`)
-      )),
-    );
+    const data = await fetchData(binance, params);
+
+    data.forEach(([symbol, ...ohlc]) => {
+      ohlcData[symbol.toLowerCase()] = ohlc;
+    });
   } catch (error) {
     logger(error);
-    throw new Error(`${error.response.data.msg.toUpperCase()}`);
   }
 
   return ohlcData;
 };
 
-/**
- * @param {Array<{symbol: string; timeframe: string; smoothing: number}>} params
- */
-const fetchOhlc = async (params) => {
-  const ohlcAll = await fetchData(params);
-
-  const ohlcData = ohlcAll.reduce((acc, { data: currentOhlc }, i) => {
-    const _currentOhlc = currentOhlc
-      .slice(currentOhlc.length - params[i].smoothing)
-      .map(([openTime, o, h, l, c, volume, candleCloseTime]) => {
-        const [open, high, low, close] = convertToNumbers([o, h, l, c]);
-
-        return {
-          closePrice: close,
-          ohlc4: (open + high + low + close) / 4,
-          candleCloseTime,
-        };
-      });
-
-    return {
-      ...acc,
-      [params[i].symbol]: _currentOhlc,
-    };
-  }, {});
-
-  return ohlcData;
-};
-
 module.exports = {
-  fetchData,
   fetchOhlc,
 };

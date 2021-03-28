@@ -1,13 +1,13 @@
 {
   "name": "twap-bot",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Trading bot based on TWAP",
   "main": "index.js",
   "scripts": {
     "start": "node src/main.js",
     "dev": "nodemon src/main.js",
     "test": "mocha test/*/**",
-    "backtest": "LOG_OUTPUT=true node backtest/backtest.js"
+    "backtest": "LOG_OUTPUT=true nodemon backtest/backtest.js"
   },
   "keywords": [],
   "author": "",
@@ -18,9 +18,8 @@
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
     "mocha": "^8.3.2",
-    "qs": "^6.9.6",
-    "uuid": "^8.3.2",
-    "ws": "^7.4.4"
+    "node-binance-api": "^0.12.5",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "eslint": "^7.21.0",

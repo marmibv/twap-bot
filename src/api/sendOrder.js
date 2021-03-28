@@ -1,30 +1,13 @@
-const axios = require('axios').default;
-const qs = require('qs');
-
 const sendMessage = require('../discord-client/discord-client');
-const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
 const floor = require('../helpers/floor');
 const logger = require('../helpers/logger');
 
 const { maxOpenedPositions } = require('../../main.config');
-const { API_URL } = require('../constants');
-
-const newOrderEndpoint = '/api/v3/order';
 
 const entries = {};
 
-const createQueryString = (symbol, side, quantity) => (
-  qs.stringify({
-    quantity,
-    side,
-    symbol: symbol.toUpperCase(),
-    type: 'MARKET',
-    timestamp: Date.now(),
-  })
-);
-
-const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, assetFilter) => {
+const sendBuyOrder = async (binance, openedPositions, usdtBalance, symbol, currentPrice, assetFilter) => {
   if (
     openedPositions.length >= maxOpenedPositions
     || usdtBalance < 11
@@ -40,35 +23,21 @@ const sendBuyOrder = async (openedPositions, usdtBalance, symbol, currentPrice, 
 
   const quantity = floor(availableBalance / currentPrice, assetFilter.decimals);
 
-  const queryString = createQueryString(symbol, 'BUY', quantity);
-  const sign = encode(queryString);
-
   try {
-    const res = await axios({
-      method: 'POST',
-      url: `${API_URL}${newOrderEndpoint}?${queryString}&signature=${sign}`,
-      headers: {
-        'X-MBX-APIKEY': process.env.API_KEY,
-      },
-    });
-
-    if (res.status !== 200) {
-      throw new Error(res.message);
-    }
+    binance.marketBuy(symbol.toUpperCase(), quantity);
   } catch (error) {
     logger(error, '\n', error.response.data.msg);
   }
 
   entries[symbol] = currentPrice;
 
-  logger('BUY', symbol, `@$${currentPrice}`, availableBalance, quantity);
-
   if (sendMessage) {
     sendMessage(`Bought ${quantity} ${removeQuote(symbol).toUpperCase()} @ $${currentPrice}`);
   }
+  logger('BUY', symbol, `@$${currentPrice}`, availableBalance, quantity);
 };
 
-const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter) => {
+const sendSellOrder = async (binance, openedPositions, symbol, currentPrice, assetFilter) => {
   const currentPosition = openedPositions.find(({ asset }) => asset === removeQuote(symbol));
 
   if (!openedPositions.length || !currentPosition) {
@@ -79,34 +48,20 @@ const sendSellOrder = async (openedPositions, symbol, currentPrice, assetFilter)
   const { free } = currentPosition;
   const assetBalance = floor(free, assetFilter.decimals);
 
-  const queryString = createQueryString(symbol, 'SELL', assetBalance);
-  const sign = encode(queryString);
-
   try {
-    const res = await axios({
-      method: 'POST',
-      url: `${API_URL}${newOrderEndpoint}?${queryString}&signature=${sign}`,
-      headers: {
-        'X-MBX-APIKEY': process.env.API_KEY,
-      },
-    });
-
-    if (res.status !== 200) {
-      throw new Error(res.message);
-    }
+    binance.marketSell(symbol.toUpperCase(), assetBalance);
   } catch (error) {
     logger(error, '\n', error.response.data.msg);
   }
 
   const pnl = (currentPrice / entries[symbol] - 1) * 100;
 
-  logger('SELL', symbol, `@$${currentPrice}`, assetBalance);
-
   if (sendMessage) {
     sendMessage(`Sold ${assetBalance} ${removeQuote(symbol).toUpperCase()} @ $${currentPrice}\n${
       Number.isNaN(pnl) ? '' : `PnL: ${pnl.toFixed(2)}%`
     }`);
   }
+  logger('SELL', symbol, `@$${currentPrice}`, assetBalance);
 };
 
 module.exports = {
