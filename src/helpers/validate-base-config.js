@@ -45,8 +45,8 @@ const validateMaxOpenedPositions = (_maxOpenedPositions) => {
     throw new Error('MaxOpenedPositions must be number');
   }
 
-  if (/* maxOpenedPosition >= watchedAssets.length */ _maxOpenedPositions > 2 || _maxOpenedPositions <= 0) {
-    throw new Error('MaxOpenedPositions must be higher than 0 and less than 2');
+  if (_maxOpenedPositions > watchedAssets.length || _maxOpenedPositions <= 0) {
+    throw new Error('MaxOpenedPositions must be higher than 0 and lower than watched assets');
   }
 };
 

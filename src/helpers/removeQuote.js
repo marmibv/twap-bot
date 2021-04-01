@@ -1,3 +1,3 @@
-const removeQuote = (marketPair) => marketPair.toUpperCase().replace('USDT', '');
+const removeQuote = (marketPair, quote = 'USDT') => marketPair.toUpperCase().replace(quote, '');
 
 module.exports = removeQuote;

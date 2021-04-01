@@ -12,6 +12,8 @@
 
 - [x] Refactor and organize current code
 
+- [ ] FIX Readme
+
 # API
 
 - Buy/Sell via Binance/FTX API

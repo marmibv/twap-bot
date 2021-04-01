@@ -2,6 +2,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable guard-for-in */
 /* eslint-disable no-restricted-syntax */
+const Binance = require('node-binance-api');
 const { v4: uuidv4 } = require('uuid');
 
 const { fetchData } = require('../src/api/fetch-ohlc');
@@ -9,7 +10,12 @@ const convertToNumbers = require('../src/helpers/convert-to-numbers');
 const getTwapPos = require('../src/helpers/twap');
 const logger = require('../src/helpers/logger');
 
-const capital = 1000;
+const binance = new Binance().options({
+  APIKEY: process.env.API_KEY,
+  APISECRET: process.env.SECRET_KEY,
+});
+
+const capital = 20;
 const candles = 201;
 
 const initData = [
@@ -17,39 +23,27 @@ const initData = [
     capital,
     symbol: 'btcusdt',
     timeframe: '4h',
-    smoothing: 15,
+    smoothing: 20,
   },
 ];
 
 let entry = {};
 
 const test = async () => {
-  const rawData = await fetchData(initData);
-
+  const rawData = await fetchData(binance, initData, 500);
   const markets = rawData
-    .reduce((acc, { data: market }, i) => {
-      logger('Start date:', initData[i].symbol.toUpperCase(), new Date(market[0][0]));
-
-      return {
+    .reduce((acc, [token, ...market], i) => (
+      {
         ...acc,
-        [uuidv4()]: market
-          .slice(market.length - candles > 0 ? market.length - candles : 0, market.length)
-          .map(([openTime, o, h, l, c, volume, candleCloseTime]) => {
-            const [open, high, low, close] = convertToNumbers([o, h, l, c]);
-
-            return {
-              closePrice: close,
-              ohlc4: (open + high + low + close) / 4,
-              candleCloseTime,
-            };
-          }),
-      };
-    }, {});
+        [uuidv4()]: market,
+      }
+    ), {});
 
   let j = 0;
 
   for (const market in markets) {
     const ohlcValues = markets[market];
+    logger('Start date: ', new Date(ohlcValues[0].candleCloseTime));
 
     for (let i = initData[j].smoothing; i < ohlcValues.length; i++) {
       const prevOhlc = ohlcValues.slice(i - initData[j].smoothing, i);
@@ -62,6 +56,7 @@ const test = async () => {
 
       if (currentTwapPosition === 'below' && prevTwapPosition !== currentTwapPosition) {
         entry = {
+          symbol: currentSymbol,
           price: ohlc[ohlc.length - 1].closePrice,
           type: 'long',
         };
@@ -75,6 +70,11 @@ const test = async () => {
         //   'Date:', new Date(ohlc[ohlc.length - 1].candleCloseTime),
         // );
       } else if (currentTwapPosition === 'above' && prevTwapPosition !== currentTwapPosition) {
+        if (currentSymbol !== entry.symbol) {
+          // eslint-disable-next-line no-continue
+          continue;
+        }
+
         if (entry && entry.type === 'long') {
           const entryPrice = entry.price;
           const currentPrice = ohlc[ohlc.length - 1].closePrice;

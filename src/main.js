@@ -1,37 +1,49 @@
-const Binance = require('node-binance-api');
-
 require('dotenv').config();
 
-const { watchedAssets } = require('../main.config');
+const {
+  watchedAssets, maxOpenedPositions, discordDMChannelId, discordUserId,
+} = require('../main.config');
 
-const { fetchOhlc } = require('./api/fetch-ohlc');
-const getUserBalances = require('./api/get-user-balances');
-const { sendSellOrder, sendBuyOrder } = require('./api/sendOrder');
-const getAssetFilters = require('./api/get-asset-filters');
+const Binance = require('./api/binance-api');
+const initDiscordBot = require('./discord-client/discord-client');
 
 const { validateBaseConfig } = require('./helpers/validate-base-config');
 const getTwapPos = require('./helpers/twap');
 const getOhlc = require('./helpers/get-ohlc');
-const { getOpenedPositions } = require('./helpers/get-opened-positions');
 const logger = require('./helpers/logger');
 
 const init = async (_initData) => {
   validateBaseConfig();
 
   logger(
+    'info',
     'Watching:\n',
     _initData.map(({ symbol, timeframe, smoothing }) => `Symbol: ${symbol}\n Timeframe: ${timeframe}\n Smoothing: ${smoothing}`).join('\n'),
+    '\nMax positions opened:',
+    maxOpenedPositions,
   );
 
-  const binance = new Binance().options({
-    APIKEY: process.env.API_KEY,
-    APISECRET: process.env.SECRET_KEY,
+  const discordBot = initDiscordBot({
+    discordDMChannelId,
+    discordUserId,
+    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
   });
 
-  const ohlc = await fetchOhlc(binance, _initData);
-  const assetFilters = await getAssetFilters(_initData);
+  const binance = new Binance({
+    maxOpenedPositions,
+    API_KEY: process.env.API_KEY,
+    SECRET_KEY: process.env.SECRET_KEY,
+    watchedAssets: _initData,
+    sendDiscordMessage: discordBot.sendDiscordMessage,
+  });
 
-  binance.websockets.candlesticks(_initData.map(({ symbol }) => symbol.toUpperCase()), '1d', async (candlesticks) => {
+  await binance.init();
+
+  const ohlc = await binance.getOhlc();
+
+  binance.watchCandlesticks(async (data) => {
+    const { data: candlesticks } = JSON.parse(data);
+
     if (!candlesticks || !Object.values(ohlc).length) {
       return;
     }
@@ -42,23 +54,17 @@ const init = async (_initData) => {
     const { ohlc: _ohlc, newCandle } = getOhlc(ohlc[_streamSymbol], candleData);
 
     if (newCandle) {
-      const { availableBalance, tradedAssets } = await getUserBalances(binance, _initData);
-      const openedPositions = getOpenedPositions(tradedAssets, assetFilters, ohlc);
-
       const prevTwapPosition = getTwapPos(ohlc[_streamSymbol]);
 
       ohlc[_streamSymbol] = _ohlc;
 
       const currentOhlc = ohlc[_streamSymbol];
-      const currentPrice = currentOhlc[currentOhlc.length - 1].closePrice;
-      const currentAssetFilter = assetFilters[_streamSymbol.toUpperCase()];
-
       const twapPosition = getTwapPos(currentOhlc);
 
       if (twapPosition === 'below' && prevTwapPosition !== twapPosition) {
-        sendBuyOrder(binance, openedPositions, availableBalance, _streamSymbol, currentPrice, currentAssetFilter);
+        await binance.sendOrder('BUY', ohlc, _streamSymbol);
       } else if (twapPosition === 'above' && prevTwapPosition !== twapPosition) {
-        sendSellOrder(binance, openedPositions, _streamSymbol, currentPrice, currentAssetFilter);
+        await binance.sendOrder('SELL', ohlc, _streamSymbol);
       }
     }
   });

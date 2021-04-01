@@ -10,14 +10,10 @@ const getOpenedPositions = (tradedAssets, assetFilters, ohlc) => {
 
   const openedPositions = tradedAssets.filter(({ asset, free }) => {
     const { minNotional } = assetFilters[`${asset}USDT`];
-
     return free > minNotional / lastPrices[`${asset}USDT`];
   });
 
   return openedPositions;
 };
 
-module.exports = {
-  getLastPrices,
-  getOpenedPositions,
-};
+module.exports = getOpenedPositions;

@@ -6,7 +6,7 @@ module.exports = {
       smoothing: 20,
     },
   ],
-  maxOpenedPositions: 2,
+  maxOpenedPositions: 1,
   // Comment/delete logOutput to disable output in console
   logOutput: true,
 };
