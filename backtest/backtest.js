@@ -2,21 +2,16 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable guard-for-in */
 /* eslint-disable no-restricted-syntax */
-const Binance = require('node-binance-api');
 const { v4: uuidv4 } = require('uuid');
 
-const { fetchData } = require('../src/api/fetch-ohlc');
+const Binance = require('../src/api/binance-api');
+
 const convertToNumbers = require('../src/helpers/convert-to-numbers');
 const getTwapPos = require('../src/helpers/twap');
 const logger = require('../src/helpers/logger');
 
-const binance = new Binance().options({
-  APIKEY: process.env.API_KEY,
-  APISECRET: process.env.SECRET_KEY,
-});
-
-const capital = 20;
-const candles = 201;
+const capital = 1000;
+const candles = 20;
 
 const initData = [
   {
@@ -27,15 +22,31 @@ const initData = [
   },
 ];
 
+const binance = new Binance({
+  API_KEY: process.env.API_KEY,
+  SECRET_KEY: process.env.SECRET_KEY,
+  watchedAssets: initData,
+});
+
 let entry = {};
 
 const test = async () => {
-  const rawData = await fetchData(binance, initData, 500);
+  const rawData = await binance.fetchOhlc(candles);
+
   const markets = rawData
-    .reduce((acc, [token, ...market], i) => (
+    .reduce((acc, market, i) => (
       {
         ...acc,
-        [uuidv4()]: market,
+        [uuidv4()]: market
+          .map(([openTime, o, h, l, c, volume, candleCloseTime]) => {
+            const [open, high, low, close] = convertToNumbers([o, h, l, c]);
+
+            return {
+              closePrice: close,
+              ohlc4: (open + high + low + close) / 4,
+              candleCloseTime,
+            };
+          }),
       }
     ), {});
 
@@ -43,7 +54,7 @@ const test = async () => {
 
   for (const market in markets) {
     const ohlcValues = markets[market];
-    logger('Start date: ', new Date(ohlcValues[0].candleCloseTime));
+    logger('info', 'Start date: ', new Date(ohlcValues[0].candleCloseTime));
 
     for (let i = initData[j].smoothing; i < ohlcValues.length; i++) {
       const prevOhlc = ohlcValues.slice(i - initData[j].smoothing, i);
@@ -62,6 +73,7 @@ const test = async () => {
         };
 
         // logger(
+        //   'info',
         //   'BUY',
         //   'Symbol:', currentSymbol,
         //   'Timeframe:', timeframe,
@@ -87,6 +99,7 @@ const test = async () => {
           entry.type = 'short';
 
           // logger(
+          //   'info',
           //   'SELL',
           //   'Symbol:', currentSymbol,
           //   'Timeframe:', timeframe,
@@ -101,6 +114,7 @@ const test = async () => {
     }
 
     logger(
+      'info',
       'LAST TRADE:',
       initData[j].symbol,
       entry.price,
@@ -114,6 +128,7 @@ const test = async () => {
     capital: _capital, symbol, timeframe, smoothing,
   }) => {
     logger(
+      'info',
       'Symbol:', symbol.toUpperCase(),
       'Timeframe:', timeframe,
       'Smoothing:', smoothing,

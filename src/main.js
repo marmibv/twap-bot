@@ -10,6 +10,8 @@ const initDiscordBot = require('./discord-client/discord-client');
 const { validateBaseConfig } = require('./helpers/validate-base-config');
 const getTwapPos = require('./helpers/twap');
 const getOhlc = require('./helpers/get-ohlc');
+const removeQuote = require('./helpers/removeQuote');
+const calculatePnl = require('./helpers/calculate-pnl');
 const logger = require('./helpers/logger');
 
 const init = async (_initData) => {
@@ -40,6 +42,64 @@ const init = async (_initData) => {
   await binance.init();
 
   const ohlc = await binance.getOhlc();
+
+  if (discordBot.setResponseMessage) {
+    discordBot.setResponseMessage([
+      '!connection',
+      (msg) => {
+        const wsState = binance.ws?.readyState;
+
+        if (wsState === 1) {
+          msg.channel.send('Websocket is connected! :white_check_mark:');
+          return;
+        }
+
+        if (!wsState || wsState === 2 || wsState === 3) {
+          msg.channel.send('Websocket is not connected! ⚠');
+        }
+      },
+    ]);
+
+    discordBot.setResponseMessage([
+      '!opened-positions',
+      async (msg) => {
+        const activePositions = binance.positions;
+
+        if (!Object.keys(activePositions).length) {
+          const { openedPositions } = await binance.getAccountBalances(ohlc);
+
+          if (!openedPositions.length) {
+            msg.channel.send('No positions opened.');
+            return;
+          }
+
+          const response = `Opened positions: (PnLs will not be shown as positions were not opened by this bot)\n${
+            openedPositions.reduce((acc, { asset, free }) => {
+              // eslint-disable-next-line no-param-reassign
+              acc += `${asset} ${free}\n`;
+              return acc;
+            }, '')
+          }`;
+          msg.channel.send(response);
+          return;
+        }
+
+        const response = `Opened positions:\n${
+          Object.keys(activePositions).reduce((acc, symbol) => {
+            const currentOhlc = ohlc[symbol.toLowerCase()];
+            const { closePrice } = currentOhlc[currentOhlc.length - 1];
+            const { entry, quantity } = activePositions[symbol];
+            const pnlResponse = calculatePnl(entry, closePrice);
+
+            // eslint-disable-next-line no-param-reassign
+            acc += `${removeQuote(symbol)} ${quantity} - ${pnlResponse}`;
+            return acc;
+          }, '')
+        }`;
+        msg.channel.send(response);
+      },
+    ]);
+  }
 
   binance.watchCandlesticks(async (data) => {
     const { data: candlesticks } = JSON.parse(data);

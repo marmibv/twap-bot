@@ -1,6 +1,6 @@
 {
   "name": "twap-bot",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Trading bot based on TWAP",
   "main": "index.js",
   "scripts": {

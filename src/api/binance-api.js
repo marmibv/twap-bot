@@ -7,6 +7,7 @@ const encode = require('../helpers/encode');
 const removeQuote = require('../helpers/removeQuote');
 const convertToNumbers = require('../helpers/convert-to-numbers');
 const getOpenedPositions = require('../helpers/get-opened-positions');
+const calculatePnl = require('../helpers/calculate-pnl');
 const floor = require('../helpers/floor');
 
 class Binance {
@@ -30,6 +31,8 @@ class Binance {
 
     this.streams = watchedAssets.map(({ symbol, timeframe }) => `${symbol}@kline_${timeframe}`).join('/');
     this.ws = null;
+
+    this.positions = {};
   }
 
   async init() {
@@ -149,13 +152,13 @@ class Binance {
     this.filters = assetFilters;
   }
 
-  async fetchOhlc(limit = 500) {
+  async fetchOhlc(limit = null) {
     const candlesticksEndpoint = '/api/v3/klines';
 
     const ohlcData = await Promise.all(
-      this.watchedAssets.map(({ symbol, timeframe }) => (
+      this.watchedAssets.map(({ symbol, timeframe, smoothing }) => (
         fetch({
-          url: `${this.API_URL}${candlesticksEndpoint}?symbol=${symbol.toUpperCase()}&interval=${timeframe}&limit=${limit}`,
+          url: `${this.API_URL}${candlesticksEndpoint}?symbol=${symbol.toUpperCase()}&interval=${timeframe}&limit=${limit || smoothing}`,
         })
           .catch((err) => {
             logger('error', err.msg, 'Code:', err.code, '- OHLC');
@@ -173,7 +176,6 @@ class Binance {
 
     const ohlcData = ohlcAll.reduce((acc, currentOhlc, i) => {
       const _currentOhlc = currentOhlc
-        .slice(currentOhlc.length - watchedAssets[i].smoothing)
         // eslint-disable-next-line no-unused-vars
         .map(([openTime, o, h, l, c, volume, candleCloseTime]) => {
           const [open, high, low, close] = convertToNumbers([o, h, l, c]);
@@ -266,12 +268,16 @@ class Binance {
           });
 
           logger('info', `Bought ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice}`);
+          if (this.sendDiscordMessage) {
+            this.sendDiscordMessage(`Bought ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice}`);
+          }
+
+          this.positions[currentTokenSymbol.toUpperCase()] = {
+            quantity,
+            entry: currentPrice,
+          };
         } catch (error) {
           logger('error', error.msg, '- MARKET BUY');
-        }
-
-        if (this.sendDiscordMessage) {
-          this.sendDiscordMessage(`Bought ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice}`);
         }
       },
       SELL: async () => {
@@ -299,13 +305,21 @@ class Binance {
             },
           });
 
+          const currentActivePosition = this.positions[currentTokenSymbol.toUpperCase()];
+          let pnlResponse;
+          if (currentActivePosition) {
+            const { entry } = currentActivePosition;
+            pnlResponse = calculatePnl(entry, currentPrice);
+          }
+
           logger('info', `Sold ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice}`);
+          if (this.sendDiscordMessage) {
+            this.sendDiscordMessage(`Sold ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice} ${pnlResponse}`);
+          }
+
+          delete this.positions[currentTokenSymbol.toUpperCase()];
         } catch (error) {
           logger('error', error.msg, '- MARKET SELL');
-        }
-
-        if (this.sendDiscordMessage) {
-          this.sendDiscordMessage(`Sold ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice}`);
         }
       },
     };
@@ -334,7 +348,7 @@ class Binance {
     });
 
     this.ws.on('close', () => {
-      this.initWs(onMessageCallback);
+      this.watchCandlesticks(onMessageCallback);
     });
   }
 }

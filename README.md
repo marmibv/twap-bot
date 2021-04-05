@@ -70,8 +70,7 @@ module.exports = {
 
 - Maximum opened positions at once
   - can not be 0
-  - must be equal or lower than 2
-    - Support for more should be added soon
+  - must be equal or lower than watched assets
 
 ```js
 // main.config.js
