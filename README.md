@@ -101,6 +101,14 @@ module.exports = {
 
 - If you want to get Discord messages when bot executes buy or sell and access to some commands also set these variables
 
+#### Discord commands
+
+- !connection
+  - Gives information whether bot is listening to Binance data or not
+
+- !opened-positions
+  - Responds with currently opened positions
+
 #### DISCORD_BOT_TOKEN
 
 - Bot token from your own discord bot

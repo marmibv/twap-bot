@@ -314,7 +314,7 @@ class Binance {
 
           logger('info', `Sold ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice}`);
           if (this.sendDiscordMessage) {
-            this.sendDiscordMessage(`Sold ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice} ${pnlResponse}`);
+            this.sendDiscordMessage(`Sold ${quantity} ${currentTokenSymbol.toUpperCase()} - @ $${currentPrice} ${pnlResponse || ''}`);
           }
 
           delete this.positions[currentTokenSymbol.toUpperCase()];
